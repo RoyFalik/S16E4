@@ -1,0 +1,1 @@
+SELECT * FROM TABLE(rwp.doLOV('person', '[first_name], [last_name]', '[person_id]', 'where [person_id] = 1'))
