@@ -7,14 +7,15 @@ drop type returnTableType;
 drop type returnObjectType;
 
 
-
 -- Defines the format of each row/entry --
 CREATE OR REPLACE TYPE returnObjectType 
 AS OBJECT
 (
   R_ID          INT,
-  DISPLAY_VAL   VARCHAR(255),
-  RETURN_VAL    VARCHAR(255)
+  col1   VARCHAR(255),
+  col2    VARCHAR(255),
+  col3    VARCHAR(255),
+  col4   VARCHAR(255)
 )
 /
 
@@ -29,7 +30,7 @@ CREATE OR REPLACE TYPE returnTableType
 CREATE OR REPLACE PACKAGE rwp
 AS
     TYPE stringCollectionType IS TABLE OF VARCHAR(255) INDEX BY PLS_INTEGER;    
-    FUNCTION doLOV(table_name VARCHAR2, display_value_column VARCHAR2, return_value_column VARCHAR2, where_expression  VARCHAR2  DEFAULT 'WHERE TRUE')  RETURN returnTableType PIPELINED;
+    FUNCTION doLOV(table_name VARCHAR2, display_value_column VARCHAR2, return_value_column VARCHAR2, where_expression VARCHAR2 DEFAULT 'WHERE TRUE' ) RETURN returnTableType PIPELINED;
 END;
 /
 
@@ -66,11 +67,13 @@ END;
 CREATE OR REPLACE PACKAGE BODY rwp AS
 FUNCTION doLOV(table_name VARCHAR2, display_value_column VARCHAR2, return_value_column VARCHAR2, where_expression VARCHAR2 DEFAULT 'WHERE TRUE' ) RETURN returnTableType PIPELINED IS
 
-request_result clob;
+request_result                clob;
 json_values                   apex_json.t_values;
 row_count                     PLS_INTEGER;
-d_val                         varchar(255);
-r_val                         varchar(255);
+d1_val                        varchar(255);
+d2_val                        varchar(255);
+d3_val                        varchar(255);
+d4_val                        varchar(255);
 expr_cpy                      varchar(255);
 column_names_in_expression    stringCollectionType;  
 num_cols_in_expression        PLS_INTEGER;
@@ -107,16 +110,15 @@ BEGIN
     apex_web_service.g_request_headers(7).value := 'SIM_JSON';
     
     --^^^^^^ CHANGE THIS INFORMATION TO MATCH YOUR GROUP'S INFO ^^^^^^
-    
-    
-    -- Extract the RETURN_VALUE Column name for the input expression
+
+        -- Extract the RETURN_VALUE Column name for the input expression
     ret_val_column := REGEXP_SUBSTR(return_value_column, '\[([^\[])+\]', 1, 1); 
-    ret_val_column := SUBSTR(ret_val_column, 2, length(ret_val_column)-2);  
-    
+    ret_val_column := SUBSTR(ret_val_column, 2, length(ret_val_column)-2);     
+        
     
     -- Procedure to replace all [c:colum_name] expressions in the where clause, with their actual column name, i.e WHERE [c:first_name] ---> WHERE first_name
     where_expr := where_expression;
-    match_count := REGEXP_COUNT (where_expr, '\[([^\[])+\]'); 
+    match_count := REGEXP_COUNT(where_expr, '\[([^\[])+\]'); 
     
     
     for i in 1 .. (match_count)
@@ -157,42 +159,64 @@ BEGIN
     column_names_in_expression := parseExpressionForColumns(display_value_column);
     num_cols_in_expression := column_names_in_expression(1);
     
+    sys.dbms_output.enable;
+
+    sys.dbms_output.put_line('Parsing row data and building rows:');
+    sys.dbms_output.put_line('column_names_in_expression(1): '||column_names_in_expression(1)|| ' column_names_in_expression(2): ' ||column_names_in_expression(2)|| ' column_names_in_expression(3): ' ||column_names_in_expression(3)|| ' column_names_in_expression(4): ' ||column_names_in_expression(4)||' column_names_in_expression(5): ' ||column_names_in_expression(5));
+    apex_debug.log_dbms_output; 
     
     -- Begin parsing data for each row --
     FOR i in 1 .. row_count
     LOOP
-        -- Collect all the data requested in the display value parameter       
-        FOR j in 2  .. num_cols_in_expression
-        LOOP                                                        
-           data((j-1)) := apex_json.get_varchar2(
-             p_path   => ''||column_names_in_expression(j) || '[%d]',                
-             p0       => (i),
-             p_values => json_values
-          );
-        END LOOP;
+        d1_val := apex_json.get_varchar2(
+           p_path   => ''||column_names_in_expression(2) || '[%d]',                
+           p0       => (i),
+           p_values => json_values
+        );
+
+        d2_val := apex_json.get_varchar2(
+           p_path   => ''||column_names_in_expression(3) || '[%d]',                
+           p0       => (i),
+           p_values => json_values
+        );
+
+        d3_val := apex_json.get_varchar2(
+           p_path   => ''||column_names_in_expression(4) || '[%d]',                
+           p0       => (i),
+           p_values => json_values
+        );
+
+        d4_val := apex_json.get_varchar2(
+           p_path   => ''||column_names_in_expression(5) || '[%d]',                
+           p0       => (i),
+           p_values => json_values
+        ); 
+
+        sys.dbms_output.put_line('Row: '||i||' d1: '||d1_val||' d2: '||d2_val||' d3: '||d3_val||' d4: '||d4_val); 
+        apex_debug.log_dbms_output;      
         
-        expr_cpy := display_value_column;
+        -- expr_cpy := display_value_column;
         
-        -- format the display value data for this row as specified by the expression
-        FOR k in 1 .. (num_cols_in_expression-1)
-        LOOP
-             -- we use regex to match our data into the [column_name]s in the expression, hence formatting our data as the user specified
-             expr_cpy := REGEXP_REPLACE(expr_cpy, '\[([^\[])+\]', data(k),1,1); 
+        -- -- format the display value data for this row as specified by the expression
+        -- FOR k in 1 .. (num_cols_in_expression-1)
+        -- LOOP
+        --      -- we use regex to match our data into the [column_name]s in the expression, hence formatting our data as the user specified
+        --      expr_cpy := REGEXP_REPLACE(expr_cpy, '\[([^\[])+\]', data(k),1,1); 
              
-        END LOOP;
+        -- END LOOP;
         
        
-      d_val := expr_cpy;
+      -- d_val := expr_cpy;
       
-      -- Get the return value data for this row 
-      r_val := apex_json.get_varchar2(
-         p_path   => ''|| ret_val_column || '[%d]',
-         p0       => i,
-         p_values => json_values
-      );
+      -- -- Get the return value data for this row 
+      -- r_val := apex_json.get_varchar2(
+      --    p_path   => ''|| ret_val_column || '[%d]',
+      --    p0       => i,
+      --    p_values => json_values
+      -- );
 
        -- Pipe the row
-      PIPE ROW (returnObjectType(i,d_val,r_val));
+      PIPE ROW (returnObjectType(i,d1_val,d2_val, d3_val, d4_val));
     END LOOP;
     RETURN;
     END;
