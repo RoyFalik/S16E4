@@ -8,15 +8,40 @@ drop type returnObjectType;
 
 
 -- Defines the format of each row/entry --
-CREATE OR REPLACE TYPE returnObjectType 
-AS OBJECT
+CREATE OR REPLACE TYPE returnObjectType AS OBJECT
 (
-  R_ID          INT,
-  col1   VARCHAR(255),
+  R_ID    number,
+  col1    VARCHAR(255),
   col2    VARCHAR(255),
   col3    VARCHAR(255),
-  col4   VARCHAR(255)
-)
+  col4    VARCHAR(255),
+  CONSTRUCTOR FUNCTION returnObjectType
+     ( R_ID     number,
+       col1     VARCHAR default null,
+       col2     VARCHAR default null,
+       col3     VARCHAR default null,
+       col4     VARCHAR default null
+     ) RETURN SELF AS result
+);
+/
+CREATE OR REPLACE TYPE BODY returnObjectType AS
+     CONSTRUCTOR FUNCTION returnObjectType
+     ( R_ID     number,
+       col1     VARCHAR default null,
+       col2     VARCHAR default null,
+       col3     VARCHAR default null,
+       col4     VARCHAR default null
+     ) RETURN SELF AS result
+     AS
+     BEGIN
+        SELF.R_ID := r_id;
+        SELF.col1 := col1;
+        SELF.col2 := col2;
+        SELF.col3 := col3;
+        SELF.col4 := col4;
+        RETURN;
+     END;
+END;
 /
 
 -- Creates a type which is a table of the type above, i.e this table will contain entries in the format defined above -- 
@@ -70,6 +95,7 @@ FUNCTION doLOV(table_name VARCHAR2, display_value_column VARCHAR2, return_value_
 request_result                clob;
 json_values                   apex_json.t_values;
 row_count                     PLS_INTEGER;
+row                           returnObjectType;
 d1_val                        varchar(255);
 d2_val                        varchar(255);
 d3_val                        varchar(255);
@@ -83,6 +109,7 @@ ret_val_column                varchar(255);
 rmatch                        varchar(255);
 where_expr                    varchar(255);
 match_count                   varchar(255);
+
 
 BEGIN
 
@@ -168,32 +195,18 @@ BEGIN
     -- Begin parsing data for each row --
     FOR i in 1 .. row_count
     LOOP
-        d1_val := apex_json.get_varchar2(
-           p_path   => ''||column_names_in_expression(2) || '[%d]',                
-           p0       => (i),
-           p_values => json_values
-        );
+        row := NEW returnObjectType(i);
+        FOR j in 2  .. num_cols_in_expression
+        LOOP
+          row(j) := apex_json.get_varchar2(
+             p_path   => ''||column_names_in_expression(j) || '[%d]',                
+             p0       => (i),
+             p_values => json_values
+          );
+        END LOOP;
 
-        d2_val := apex_json.get_varchar2(
-           p_path   => ''||column_names_in_expression(3) || '[%d]',                
-           p0       => (i),
-           p_values => json_values
-        );
-
-        d3_val := apex_json.get_varchar2(
-           p_path   => ''||column_names_in_expression(4) || '[%d]',                
-           p0       => (i),
-           p_values => json_values
-        );
-
-        d4_val := apex_json.get_varchar2(
-           p_path   => ''||column_names_in_expression(5) || '[%d]',                
-           p0       => (i),
-           p_values => json_values
-        ); 
-
-        sys.dbms_output.put_line('Row: '||i||' d1: '||d1_val||' d2: '||d2_val||' d3: '||d3_val||' d4: '||d4_val); 
-        apex_debug.log_dbms_output;      
+        -- sys.dbms_output.put_line('Row: '||i||' d1: '||d1_val||' d2: '||d2_val||' d3: '||d3_val||' d4: '||d4_val); 
+        -- apex_debug.log_dbms_output;      
         
         -- expr_cpy := display_value_column;
         
@@ -216,7 +229,7 @@ BEGIN
       -- );
 
        -- Pipe the row
-      PIPE ROW (returnObjectType(i,d1_val,d2_val, d3_val, d4_val));
+      PIPE ROW (row);
     END LOOP;
     RETURN;
     END;
