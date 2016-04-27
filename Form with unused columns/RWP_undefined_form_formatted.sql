@@ -21,7 +21,16 @@ AS OBJECT
   col7   VARCHAR(255),
   col8   VARCHAR(255),
   col9   VARCHAR(255),
-  col10  VARCHAR(255)
+  col10   VARCHAR(255)
+)
+/
+
+CREATE OR REPLACE TYPE returnObjectTypeLOV 
+AS OBJECT
+(
+  R_ID          INT,
+  DISPLAY_VAL   VARCHAR(255),
+  RETURN_VAL    VARCHAR(255)
 )
 /
 
@@ -36,7 +45,7 @@ CREATE OR REPLACE TYPE returnTableType
 CREATE OR REPLACE PACKAGE rwp
 AS
     TYPE stringCollectionType IS TABLE OF VARCHAR(255) INDEX BY PLS_INTEGER;    
-    FUNCTION doTable(table_name VARCHAR2, display_value_column VARCHAR2, return_value_column VARCHAR2, where_expression VARCHAR2 DEFAULT 'WHERE TRUE' ) RETURN returnTableType PIPELINED;
+    FUNCTION doLOV(table_name VARCHAR2, display_value_column VARCHAR2, return_value_column VARCHAR2, where_expression VARCHAR2 DEFAULT 'WHERE TRUE' ) RETURN returnTableType PIPELINED;
 END;
 /
 
@@ -79,7 +88,7 @@ END;
 
 -- Define our piplined function, which uses the APEX REST API to request data from the cornot server --> parse it --> pipe it into our return table --> return the table when done. 
 CREATE OR REPLACE PACKAGE BODY rwp AS
-FUNCTION doTable(table_name VARCHAR2, display_value_column VARCHAR2, return_value_column VARCHAR2, where_expression VARCHAR2 DEFAULT 'WHERE TRUE' ) RETURN returnTableType PIPELINED IS
+FUNCTION doLOV(table_name VARCHAR2, display_value_column VARCHAR2, return_value_column VARCHAR2, where_expression VARCHAR2 DEFAULT 'WHERE TRUE' ) RETURN returnTableType PIPELINED IS
 
 request_result                clob;
 json_values                   apex_json.t_values;
@@ -214,15 +223,15 @@ BEGIN
         END LOOP;
 
         --loop to fill in the rest with null
-        FOR j in num_cols_in_expression .. 5
+        FOR j in num_cols_in_expression .. 10
         LOOP 
             data(j) := null;
         END LOOP;        
         
        -- Pipe the row
-      PIPE ROW (returnObjectType(i,data(1), data(2), data(3), data(4), data(5),data(6),data(7),data(8),data(9),data(10)));
+      PIPE ROW (returnObjectType(i,data(1), data(2), data(3), data(4), data(5), data(6), data(7), data(8), data(9), data(10)));
     END LOOP;
     RETURN;
-END;
+    END;
 END;
 /
