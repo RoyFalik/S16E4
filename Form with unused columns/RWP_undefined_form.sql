@@ -1,6 +1,7 @@
 -- Created By Akshay Kasukhela, Caelan Evans, Seth Milligan, modified by Roy Falik and Michael Kloc
 -- For Dr. Philip Cannata
 
+--if increasing number of columns in returnObjectType look for "change columns"
 
 drop package rwp;
 drop type returnTableType;
@@ -64,6 +65,7 @@ BEGIN
     END LOOP;
 
     --fill in the rest of the column names with null
+    --change columns: change the loop to go through number of columns+1
     for j in (match_count+2) .. 11
     LOOP
         column_names(j) := null;
@@ -84,11 +86,6 @@ FUNCTION doTable(table_name VARCHAR2, display_value_column VARCHAR2, return_valu
 request_result                clob;
 json_values                   apex_json.t_values;
 row_count                     PLS_INTEGER;
-d1_val                        varchar(255);
-d2_val                        varchar(255);
-d3_val                        varchar(255);
-d4_val                        varchar(255);
-expr_cpy                      varchar(255);
 column_names_in_expression    stringCollectionType;  
 num_cols_in_expression        PLS_INTEGER;
 data                          stringCollectionType;
@@ -214,7 +211,8 @@ BEGIN
         END LOOP;
 
         --loop to fill in the rest with null
-        FOR j in num_cols_in_expression .. 5
+        --change columns: change the loop to go through number of columns+1
+        FOR j in num_cols_in_expression .. 11
         LOOP 
             data(j) := null;
         END LOOP;        
