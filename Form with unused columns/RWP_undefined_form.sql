@@ -15,7 +15,13 @@ AS OBJECT
   col1   VARCHAR(255),
   col2   VARCHAR(255),
   col3   VARCHAR(255),
-  col4   VARCHAR(255)
+  col4   VARCHAR(255),
+  col5   VARCHAR(255),
+  col6   VARCHAR(255),
+  col7   VARCHAR(255),
+  col8   VARCHAR(255),
+  col9   VARCHAR(255),
+  col10   VARCHAR(255)
 )
 /
 
@@ -58,7 +64,7 @@ BEGIN
     END LOOP;
 
     --fill in the rest of the column names with null
-    for j in (match_count+2) .. 5
+    for j in (match_count+2) .. 11
     LOOP
         column_names(j) := null;
     END LOOP;
@@ -208,13 +214,13 @@ BEGIN
         END LOOP;
 
         --loop to fill in the rest with null
-        FOR j in num_cols_in_expression .. 4
+        FOR j in num_cols_in_expression .. 10
         LOOP 
             data(j) := null;
         END LOOP;        
         
        -- Pipe the row
-      PIPE ROW (returnObjectType(i,data(1), data(2), data(3), data(4)));
+      PIPE ROW (returnObjectType(i,data(1), data(2), data(3), data(4), data(5), data(6), data(7), data(8), data(9), data(10)));
     END LOOP;
     RETURN;
     END;
